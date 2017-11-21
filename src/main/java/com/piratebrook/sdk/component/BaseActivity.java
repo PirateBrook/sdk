@@ -3,9 +3,11 @@ package com.piratebrook.sdk.component;
 import android.support.v7.app.AppCompatActivity;
 
 /**
- * Created by wyy on 2017-11-20.
+ * For Hotfix function
  */
+public abstract class BaseActivity extends AppCompatActivity {
 
-public class BaseActivity extends AppCompatActivity {
+    protected void log(String message) {
 
+    }
 }
