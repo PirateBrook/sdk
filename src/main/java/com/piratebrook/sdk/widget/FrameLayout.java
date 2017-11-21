@@ -156,5 +156,65 @@ public class FrameLayout extends ViewGroup {
          * explicitly specified.
          */
         public static final int UNSPECIFIED_GRAVITY = -1;
+
+        /**
+         * The gravity to apply with the View to which these layout parameters
+         * are associated.
+         * <p>
+         * The default value is {@link #UNSPECIFIED_GRAVITY}, which is treated
+         * by FrameLayout as {@code Gravity.TOP | Gravity.START}.
+         * @see android.view.Gravity
+         * @attr ref android.R.styleable#FrameLayout_Layout_layout_gravity
+         */
+        public int gravity = UNSPECIFIED_GRAVITY;
+
+        public LayoutParams(@NonNull Context c, @Nullable AttributeSet attrs) {
+            super(c, attrs);
+
+            final TypedArray a = c.obtainStyledAttributes(attrs, R.styleable.FrameLayout_layout);
+            gravity = a.getInt(R.styleable.FrameLayout_layout_layout_gravity, UNSPECIFIED_GRAVITY);
+            a.recycle();
+        }
+
+        public LayoutParams(int width, int height) {
+            super(width, height);
+        }
+
+        /**
+         * Create a new set of layout parameters with the specified width, height
+         * and weight.???
+         *
+         * @param width the width, either {@link #MATCH_PARENT},
+         *              {@link #WRAP_CONTENT} or a fixed size in pixels
+         * @param height the height, either {@link #MATCH_PARENT},
+         *               {@link #WRAP_CONTENT} or a fixed size in pixels.
+         * @param gravity the gravity
+         *
+         * @see android.view.Gravity
+         */
+        public LayoutParams(int width, int height, int gravity) {
+            super(width, height);
+            this.gravity = gravity;
+        }
+
+        public LayoutParams(@NonNull ViewGroup.LayoutParams source) {
+            super(source);
+        }
+
+        public LayoutParams(@NonNull ViewGroup.MarginLayoutParams source) {
+            super(source);
+        }
+
+        /**
+         * Copy constructor. Clones the width, height, margin values, and
+         * gravity of the source.
+         *
+         * @param source The layout params to copy from.
+         */
+        public LayoutParams(@NonNull LayoutParams source) {
+            super(source);
+
+            this.gravity = source.gravity;
+        }
     }
 }

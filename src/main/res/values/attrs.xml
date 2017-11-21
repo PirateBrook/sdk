@@ -3,4 +3,7 @@
     <declare-styleable name="FrameLayout">
         <attr name="measureAllChildren" format="boolean"/>
     </declare-styleable>
+    <declare-styleable name="FrameLayout_layout">
+        <attr name="layout_gravity" format="integer"/>
+    </declare-styleable>
 </resources>
