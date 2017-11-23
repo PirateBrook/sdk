@@ -6,4 +6,17 @@
     <declare-styleable name="FrameLayout_layout">
         <attr name="layout_gravity" format="integer"/>
     </declare-styleable>
+    <declare-styleable name="UrlImageView">
+        <attr name="src" format="reference"/>
+        <attr name="baselineAlignBottom" format="boolean"/>
+        <attr name="baseline" format="dimension"/>
+        <attr name="adjustViewBounds" format="boolean"/>
+        <attr name="maxWidth" format="dimension"/>
+        <attr name="maxHeight" format="dimension"/>
+        <attr name="scaleType" format="integer"/>
+        <attr name="tint" format="reference"/>
+        <attr name="drawAlpha" format="integer"/>
+        <attr name="cropToPadding" format="boolean"/>
+    </declare-styleable>
+    
 </resources>
