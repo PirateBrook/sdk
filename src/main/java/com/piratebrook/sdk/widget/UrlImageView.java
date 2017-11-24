@@ -5,9 +5,12 @@ import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
+import android.graphics.Canvas;
 import android.graphics.ColorFilter;
 import android.graphics.Matrix;
+import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Xfermode;
 import android.graphics.drawable.BitmapDrawable;
@@ -675,9 +678,278 @@ public class UrlImageView extends View {
              */
 
             // Get the max possible width given our constraints
-            widthSize = resolveAdjustedSize(w + pleft + pright, )
+            widthSize = resolveAdjustedSize(w + pleft + pright, mMaxWidth, widthMeasureSpec);
+
+            // Get the max possible height given our constraints
+            heightSize = resolveAdjustedSize(h + ptop + pbottom, mMaxHeight, heightMeasureSpec);
+
+            if (desiredAspect != 0.0f) {
+                // See what our actual aspect ratio is
+                final float actualAspect = (float)(widthSize - pleft - pright) /
+                        (heightSize - ptop - pbottom);
+
+                if (Math.abs(actualAspect - desiredAspect) > 0.0000001) {
+
+                    boolean done = false;
+
+                    // Try adjusting width to be proportional
+                    if (resizeWidth) {
+                        int newWidth = (int) (desiredAspect * (heightSize - ptop - pbottom) +
+                                                        pleft + pright);
+
+                        // Allow the width to outgrow its original estimate if height is fixed.
+                        if (!resizeHeight && !sCompatAdjustViewBounds) {
+                            widthSize = resolveAdjustedSize(newWidth, mMaxWidth, widthMeasureSpec);
+                        }
+
+                        if (newWidth <= widthSize) {
+                            widthSize = newWidth;
+                            done = true;
+                        }
+                    }
+
+                    // Try adjusting height to be proportional to width
+                    if (!done && resizeHeight) {
+                        int newHeight = (int)((widthSize - pleft - pright) / desiredAspect) +
+                                ptop + pbottom;
+
+                        // Allow the height to outgrow its original estimate if width is fixed.
+                        if (!resizeWidth && !sCompatAdjustViewBounds) {
+                            heightSize = resolveAdjustedSize(newHeight, mMaxHeight,
+                                    heightMeasureSpec);
+                        }
+
+                        if (newHeight <= heightSize) {
+                            heightSize = newHeight;
+                        }
+                    }
+                } else {
+                    /* We are either don't want to preserve the drawables aspect ratio,
+                       or we are not allowed to change view dimensions. Just measure in
+                       the normal way.
+                     */
+                    w += pleft + pright;
+                    h += ptop + pbottom;
+
+                    w = Math.max(w, getSuggestedMinimumWidth());
+                    h = Math.max(h, getSuggestedMinimumHeight());
+
+                    widthSize = resolveSizeAndState(w, widthMeasureSpec, 0);
+                    heightSize = resolveSizeAndState(h, heightMeasureSpec, 0);
+                }
+
+                setMeasuredDimension(widthSize, heightSize);
+            }
         }
 
+    }
+
+    private int resolveAdjustedSize(int desiredSize, int maxSize, int measureSpec) {
+        int result = desiredSize;
+        final int specMode = MeasureSpec.getMode(measureSpec);
+        final int specSize = MeasureSpec.getSize(measureSpec);
+        switch (specMode) {
+            case MeasureSpec.UNSPECIFIED:
+                /* Parents says we can be as big as we want. Just don't be larger
+                 *  than max size imposed on ourselves.
+                 */
+                result = Math.min(desiredSize, maxSize);
+                break;
+            case MeasureSpec.AT_MOST:
+                // Parent says we can be as big as we want, up to specSize.
+                // Don't be larger than specSize, and don't be larger than
+                // the max size imposed on ourselves.
+                result = Math.min(Math.min(desiredSize, specSize), maxSize);
+                break;
+            case MeasureSpec.EXACTLY:
+                // No choice. Do want we are told.
+                result = specSize;
+                break;
+        }
+        return result;
+    }
+
+    @Override
+    protected void drawableStateChanged() {
+        super.drawableStateChanged();
+
+        final Drawable drawable = mDrawable;
+        if (drawable != null && drawable.isStateful()
+                && drawable.setState(getDrawableState())) {
+            invalidateDrawable(drawable);
+        }
+    }
+
+    @Override
+    public void drawableHotspotChanged(float x, float y) {
+        super.drawableHotspotChanged(x, y);
+
+        if (mDrawable != null) {
+            mDrawable.setHotspot(x, y);
+        }
+    }
+
+    public void animateTransform(Matrix matrix) {
+        if (mDrawable == null) {
+            return;
+        }
+        if (matrix == null) {
+            mDrawable.setBounds(0, 0, getWidth(), getHeight());
+        } else {
+            mDrawable.setBounds(0, 0, mDrawableWidth, mDrawableHeight);
+            if (mDrawMatrix == null) {
+                mDrawMatrix = new Matrix();
+            }
+            mDrawMatrix.set(matrix);
+        }
+        invalidate();
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+
+        if (mDrawable == null) {
+            return; // couldn't resolve the URI
+        }
+
+        if (mDrawableWidth == 0 || mDrawableHeight == 0) {
+            return;     // nothing to draw (empty bounds)
+        }
+
+        if (mDrawMatrix == null && mPaddingTop == 0 && mPaddingLeft == 0) {
+            mDrawable.draw(canvas);
+        } else {
+            final int saveCount = canvas.getSaveCount();
+            canvas.save();
+
+            if (mCropToPadding) {
+                final int scrollX = mScrollX;
+                final int scrollY = mScrollY;
+                canvas.clipRect(scrollX = mPaddingLeft, scrollY + mPaddingTop,
+                        scrollX + mRight - mLeft - mPaddingRight,
+                        scrollY + mBottom - mTop - mPaddingBottom);
+            }
+
+            canvas.translate(mPaddingLeft, mPaddingTop);
+
+            if (mDrawMatrix != null) {
+                canvas.concat(mDrawMatrix);
+            }
+            mDrawable.draw(canvas);
+            canvas.restoreToCount(saveCount);
+        }
+    }
+
+    /**
+     * <p>
+     * Return the offset of the widget's text baseline from the widget's top
+     * boundary. </p>
+     * @return the offset of the baseline within the widget's bounds or -1
+     *          if baseline alignment is not supported.
+     */
+    @Override
+    public int getBaseline() {
+        if (mBaselineAlignBottom) {
+            return getMeasuredHeight();
+        } else {
+            return mBaseline;
+        }
+    }
+
+    /**
+     * <p>Set the offset of the widget's text baseline from the widget's top
+     * boundary. This value is overridden by the {@link #setBaselineAlignBottom(boolean)}
+     * property.</p>
+     *
+     * @param baseline The baseline to use, or -1 if none is to be provided.
+     */
+    public void setBaseline(int baseline) {
+        if (mBaseline != baseline) {
+            mBaseline = baseline;
+            requestLayout();
+        }
+    }
+
+    /**
+     * Sets whether the baseline of this view to the bottom of the view.
+     * Setting this value overrides any calls to setBaseline.
+     *
+     * @param aligned If true, the image view will be baseline aligned by this bottom edge.
+     *
+     */
+    public void setBaselineAlignBottom(boolean aligned) {
+        if (mBaselineAlignBottom != aligned) {
+            mBaselineAlignBottom = aligned;
+            requestLayout();
+        }
+    }
+
+    /**
+     * Checks whether this view's baseline is considered the bottom of the view.
+     *
+     * @return True if the ImageView's baseline is considered the bottom of the view, false if otherwise.
+     */
+    public boolean getBaselineAlignBottom() {
+        return mBaselineAlignBottom;
+    }
+
+    @Override
+    public boolean isOpaque() {
+        return super.isOpaque() || mDrawable != null && mXfermode == null
+                && mDrawable.getOpacity() == PixelFormat.OPAQUE
+                && mAlpha * mViewAlphaScale >> 8 == 255
+                && isFilledByImage();
+    }
+
+    private boolean isFilledByImage() {
+        if (mDrawable == null) {
+            return false;
+        }
+
+        final Rect bounds = mDrawable.getBounds();
+        final Matrix matrix = mDrawMatrix;
+        if (matrix == null) {
+            return bounds.left <= 0 && bounds.top <= 0 && bounds.right >= getWidth()
+                    && bounds.bottom >= getHeight();
+        } else if (matrix.rectStaysRect()) {
+            final RectF boundsSrc = mTempSrc;
+            final RectF boundsDst = mTempDst;
+            boundsSrc.set(bounds);
+            matrix.mapRect(boundsDst, boundsSrc);
+            return boundsDst.left <= 0 && boundsDst.top <= 0 && boundsDst.right >= getWidth()
+                    && boundsDst.bottom >= getHeight();
+        } else {
+            // If the matrix doesn't map to a rectangle, assume the worst.
+            return false;
+        }
+    }
+
+    @Override
+    public void onVisibilityAggregated(boolean isVisible) {
+        super.onVisibilityAggregated(isVisible);
+        // Only do this for new apps post-Nougat
+        if (mDrawable != null && !sCompatDrawableVisibilityDispatch) {
+            mDrawable.setVisible(isVisible, false);
+        }
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        // Only do this for old apps pre-Nougat; new apps use onVisibilityAggregated
+        if (mDrawable != null && sCompatDrawableVisibilityDispatch) {
+            mDrawable.setVisible(getVisibility() == VISIBLE, false);
+        }
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        // Only do this for old apps pre-Nougat; new apps use onVisibilityAggregate
+        if (mDrawable != null && sCompatDrawableVisibilityDispatch) {
+            mDrawable.setVisible(false, false);
+        }
     }
 
     @Override
