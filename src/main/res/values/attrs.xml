@@ -18,5 +18,14 @@
         <attr name="drawAlpha" format="integer"/>
         <attr name="cropToPadding" format="boolean"/>
     </declare-styleable>
-    
+
+    <declare-styleable name="PullHeaderLayout">
+        <attr name="header_height" format="dimension"/>
+        <attr name="header_expand_height" format="dimension"/>
+        <attr name="header_shrink_height" format="dimension"/>
+        <attr name="header" format="reference"/>
+        <attr name="content" format="reference"/>
+        <attr name="action" format="reference"/>
+    </declare-styleable>
+
 </resources>
