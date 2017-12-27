@@ -17,7 +17,9 @@ import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.view.NestedScrollingChild;
 import android.support.v4.view.NestedScrollingChildHelper;
+import android.support.v4.view.NestedScrollingParent;
 import android.support.v4.view.NestedScrollingParentHelper;
 import android.support.v4.view.ViewCompat;
 import android.util.AttributeSet;
@@ -37,7 +39,7 @@ import com.piratebrook.sdk.widget.fly.internal.ElasticOutInterpolator;
 import com.piratebrook.sdk.widget.fly.internal.SimpleAnimatorListener;
 
 
-public class PullHeaderLayout extends ViewGroup {
+public class PullHeaderLayout extends ViewGroup implements NestedScrollingParent, NestedScrollingChild {
 
     private static final String TAG = PullHeaderLayout.class.getCanonicalName();
     private static final boolean D = true;
@@ -350,6 +352,7 @@ public class PullHeaderLayout extends ViewGroup {
                 final ShapeDrawable bgDrawable = new ShapeDrawable(new OvalShape());
                 bgDrawable.getPaint().setColor(bgColor);
                 mActionView = new FloatingActionButton(getContext());
+                mActionView.setRippleColor(pressedColor);
                 mActionView.setBackgroundDrawable(bgDrawable);
                 addView(mActionView, new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -359,11 +362,12 @@ public class PullHeaderLayout extends ViewGroup {
                 mFlyView = new ImageView(getContext());
                 mFlyView.setScaleType(ImageView.ScaleType.FIT_XY);
                 addView(mFlyView, new LayoutParams(ACTION_ICON_SIZE, ACTION_ICON_SIZE));
+                mFlyView.setImageDrawable(mActionDrawable);
                 mFlyView.bringToFront();
                 float elevation = ViewCompat.getElevation(mActionView);
                 ViewCompat.setElevation(mFlyView, elevation + 1);
             }
-            mFlyView.setImageDrawable(mActionDrawable);
+
         } else {
             if (mActionView != null) {
                 removeView(mActionView);

@@ -38,7 +38,7 @@ public class FlyRefreshLayout extends PullHeaderLayout {
     public FlyRefreshLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         MountainSceneView headerView = new MountainSceneView(getContext());
-        LayoutParams lp = new LayoutParams(-1, mHeaderController.getHeight());
+        LayoutParams lp = new LayoutParams(-1, mHeaderController.getMaxHeight());
         setHeaderView(headerView, lp);
     }
 
